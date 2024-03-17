@@ -39,19 +39,16 @@ pub fn main() !void {
             return read_err;
         }
         const recv_data = recv_buf[0..recv_total];
-        const header = parseHeader(recv_data) catch |err| {
-            if (err == ServeFileError.HeaderMalformed) {
-                // Browsers (or firefox?) attempt to optimize for speed
-                // by opening a connection to the server once a user highlights
-                // a link, but doesn't start sending the request until it's
-                // clicked. The request eventually times out so we just
-                // go agane.
-                std.debug.print("Got connection but no header!\n", .{});
-                continue;
-            } else {
-                return err;
-            }
-        };
+        if (recv_data.len == 0) {
+            // Browsers (or firefox?) attempt to optimize for speed
+            // by opening a connection to the server once a user highlights
+            // a link, but doesn't start sending the request until it's
+            // clicked. The request eventually times out so we just
+            // go agane.
+            std.debug.print("Got connection but no header!\n", .{});
+            continue;
+        }
+        const header = try parseHeader(recv_data);
         const path = try parsePath(header.requestLine);
         const mime = mimeForPath(path);
         const buf = openLocalFile(path) catch |err| {
